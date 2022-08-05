@@ -26,7 +26,7 @@ type clientStruct struct {
 
 func process(client *clientStruct, server *serverStruct) {
 	connection := client.connection
-	connection.Write([]byte("Connected to server successfully\n"))
+	write(client, "Connected to server successfully\n")
 ServerIn:
 	for {
 		reader := make([]byte, 10240)
@@ -41,15 +41,44 @@ ServerIn:
 			delUser(client, server)
 			break ServerIn
 		case "\\all":
-			broadcast(client, server, "\\b "+msg+"\n")
+			broadcast(client, server, "\\b "+client.user+": "+msg+"\n")
 			api.Log(client.user + " broadcasted a message")
 			break
-
+		case "\\dm":
+			user, newMsg, _ := strings.Cut(msg, " ")
+			directMessage(client, server, user, newMsg)
+			break
+		case "\\online":
+			showOnline(client, server)
+			break
 		}
 	}
 	connection.Close()
-	api.Log("Client " + client.user + " disconnected\n")
+	api.Log("Client \"" + client.user + "\" disconnected\n")
 
+}
+
+func showOnline(client *clientStruct, server *serverStruct) {
+	users := ""
+	for _, sClient := range server.clients {
+		if sClient == client {
+			users += sClient.user + " (You)\n"
+		} else {
+			users += sClient.user + "\n"
+		}
+	}
+	write(client, "\\s Online users:\n"+users)
+}
+
+func directMessage(client *clientStruct, server *serverStruct, user string, msg string) {
+	for _, sClient := range server.clients {
+		if sClient.user == user {
+			write(sClient, "\\d "+user+": "+msg+"\n")
+			api.Log(client.user + " direct messaged " + user)
+			return
+		}
+	}
+	write(client, "\\e User \""+user+"\" does not exist\n")
 }
 
 func broadcast(client *clientStruct, server *serverStruct, msg string) {
@@ -77,7 +106,7 @@ func addUser(client *clientStruct, server *serverStruct) bool {
 	}
 	server.clients = append(server.clients, client)
 	write(client, "accept\n")
-	api.Log("User " + client.user + " added\n")
+	api.Log("User \"" + client.user + "\" added\n")
 	return true
 }
 
@@ -87,7 +116,7 @@ func delUser(client *clientStruct, server *serverStruct) {
 	for i := 0; i < len(server.clients); i++ {
 		if server.clients[i].user == client.user {
 			server.clients = append(server.clients[:i], server.clients[i+1:]...)
-			api.Log("User " + client.user + " removed\n")
+			api.Log("User \"" + client.user + "\" removed\n")
 			return
 		}
 	}

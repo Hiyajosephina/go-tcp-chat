@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"fmt"
 	"net"
 	"os"
 	"strings"
@@ -15,7 +14,7 @@ const (
 )
 
 func write(connection net.Conn, wg *sync.WaitGroup) {
-	fmt.Println("Enter commands:")
+	api.Broadcast("Enter commands:\n")
 	defer wg.Done()
 	for {
 		reader := bufio.NewReader(os.Stdin)
@@ -23,13 +22,13 @@ func write(connection net.Conn, wg *sync.WaitGroup) {
 		msg := string(bLine)
 		_, err := connection.Write([]byte(msg))
 		if err != nil {
-			fmt.Println("Error sending message")
+			api.Err("Error sending message\n")
 		}
 		if msg == "\\quit" {
 			break
 		}
 	}
-	fmt.Printf("Sent disconnect signal to server %s\n", connection.RemoteAddr().String())
+	api.Stat("Sent disconnect signal to server " + connection.RemoteAddr().String() + "\n")
 }
 
 func read(connection net.Conn, wg *sync.WaitGroup) {
@@ -42,7 +41,7 @@ func read(connection net.Conn, wg *sync.WaitGroup) {
 			break
 		}
 		if input == "" {
-			fmt.Println("Connection lost to server")
+			api.Err("Connection lost to server\n")
 			break
 		}
 		sender, msg, _ := strings.Cut(input, " ")
@@ -55,41 +54,47 @@ func read(connection net.Conn, wg *sync.WaitGroup) {
 			break
 		case "\\s":
 			api.Stat(msg)
+		case "\\d":
+			api.DirectMessage(msg)
 		default:
-			fmt.Print(msg)
+			api.Print(msg)
 		}
 	}
 	connection.Close()
-	fmt.Printf("Disconnected from server %s\n", connection.RemoteAddr().String())
+	api.Stat("Disconnected from server " + connection.RemoteAddr().String() + "\n")
 }
 
 func main() {
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Enter server address: ")
+	api.Print("Enter server address: ")
 	bHost, _, _ := reader.ReadLine()
 	host := string(bHost)
-	fmt.Print("Enter server port: ")
+	api.Print("Enter server port: ")
 	bPort, _, _ := reader.ReadLine()
 	port := string(bPort)
 	if !api.CheckHost(host) {
-		fmt.Println("Invalid address entered")
+		api.Err("Invalid address entered\n")
 		os.Exit(1)
 	} else if !api.CheckPort(port) {
-		fmt.Println("Invalid port entered")
+		api.Err("Invalid port entered\n")
 		os.Exit(1)
 	}
 	//establish connection
 	connection, err := net.Dial(serverType, host+":"+port)
 	if err != nil {
-		fmt.Println("Cannot connect to server. Are you sure the server is running?")
+		api.Err("Cannot connect to server. Are you sure the server is running?\n")
 		os.Exit(1)
 	}
 	for {
-		fmt.Print("Enter username: ")
+		api.Print("Enter username: ")
 		user, _, _ := reader.ReadLine()
+		if strings.ContainsAny(string(user), " \\") {
+			api.Err("Username cannot contains spaces or \"\\\" characters\n")
+			continue
+		}
 		_, err := connection.Write([]byte("\\user " + string(user)))
 		if err != nil {
-			fmt.Println("Error sending message")
+			api.Err("Error sending message\n")
 			continue
 		}
 
@@ -101,6 +106,11 @@ func main() {
 		}
 		api.Err("Username already taken\n")
 	}
+
+	connected := make([]byte, 10240)
+	length, _ := connection.Read(connected)
+	msg := string(connected[:length])
+	api.Stat(msg)
 
 	var wg sync.WaitGroup
 	wg.Add(2)

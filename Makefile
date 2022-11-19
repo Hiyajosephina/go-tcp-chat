@@ -1,3 +1,5 @@
+all: build
+
 run-server:
 	cd cmd; go run server/main.go
 
@@ -9,9 +11,11 @@ build: bin
 	go build -o bin/client cmd/client/main.go
 
 server:
+	go build -o bin/server cmd/server/main.go
 	bin/server
 
 client:
+	go build -o bin/client cmd/client/main.go
 	bin/client
 
 compile: bin
@@ -28,7 +32,6 @@ compile: bin
 
 bin:
 	mkdir -p bin
-
 
 clean:
 	rm -rf bin/*

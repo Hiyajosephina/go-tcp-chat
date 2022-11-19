@@ -14,7 +14,7 @@ const (
 )
 
 func write(connection net.Conn, wg *sync.WaitGroup) {
-	api.Broadcast("Enter commands:\n")
+	api.Broadcast("Enter commands:\t\t\t(Enter \"\\help\" for list of commands)\n")
 	defer wg.Done()
 	for {
 		reader := bufio.NewReader(os.Stdin)

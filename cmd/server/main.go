@@ -51,11 +51,21 @@ ServerIn:
 		case "\\online":
 			showOnline(client, server)
 			break
+		case "\\help":
+			showHelp(client, server)
+			break
 		}
 	}
 	connection.Close()
 	api.Log("Client \"" + client.user + "\" disconnected\n")
+}
 
+func showHelp(client *clientStruct, server *serverStruct) {
+	commands := "\"\\all <message>\" to broadcast <message> to all online users\n"
+	commands += "\"\\dm <username> <message>\" to send <message> to <username>\n"
+	commands += "\"\\online\" to view all currently online users\n"
+	commands += "\"\\quit\" to log off the server\n"
+	write(client, "\\b "+commands)
 }
 
 func showOnline(client *clientStruct, server *serverStruct) {
@@ -167,4 +177,5 @@ func main() {
 		}
 		go process(&newClient, &newServer)
 	}
+
 }

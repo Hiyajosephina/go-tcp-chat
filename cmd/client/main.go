@@ -1,3 +1,5 @@
+// Package main contains all the functions utilized by the client
+// application to both connect and communicate with the server
 package main
 
 import (
@@ -9,11 +11,10 @@ import (
 	"tcp-chat/api"
 )
 
-const (
-	serverType = "tcp"
-)
-
-func write(connection net.Conn, wg *sync.WaitGroup) {
+// Write writes to the net.Conn that connects the current client to the server.
+// If the client sends the "\quit" command, the net.Conn is closed and the
+// client is disconnected
+func Write(connection net.Conn, wg *sync.WaitGroup) {
 	api.Broadcast("Enter commands:\t\t\t(Enter \"\\help\" for list of commands)\n")
 	defer wg.Done()
 	for {
@@ -31,7 +32,10 @@ func write(connection net.Conn, wg *sync.WaitGroup) {
 	api.Stat("Sent disconnect signal to server " + connection.RemoteAddr().String() + "\n")
 }
 
-func read(connection net.Conn, wg *sync.WaitGroup) {
+// Read reads from the net.Conn that connects the current client to the server.
+// If the client reads the "\dc" command or a blank string, the net.Conn is
+// closed and the client is disconnected
+func Read(connection net.Conn, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for {
 		reader := make([]byte, 10240)
@@ -46,6 +50,13 @@ func read(connection net.Conn, wg *sync.WaitGroup) {
 		}
 		sender, msg, _ := strings.Cut(input, " ")
 		switch sender {
+		case "\\h":
+			commands := "\"\\all <message>\" to broadcast <message> to all online users\n"
+			commands += "\"\\dm <username> <message>\" to send <message> to <username>\n"
+			commands += "\"\\online\" to view all currently online users\n"
+			commands += "\"\\quit\" to log off the server\n"
+			api.Broadcast(commands)
+			break
 		case "\\b":
 			api.Broadcast(msg)
 			break
@@ -64,6 +75,9 @@ func read(connection net.Conn, wg *sync.WaitGroup) {
 	api.Stat("Disconnected from server " + connection.RemoteAddr().String() + "\n")
 }
 
+// main is the entry point for the client application. The initial connection
+// between server and client occurs here, as well as providing the clients
+// preffered username
 func main() {
 	reader := bufio.NewReader(os.Stdin)
 	api.Print("Enter server address: ")
@@ -80,7 +94,7 @@ func main() {
 		os.Exit(1)
 	}
 	//establish connection
-	connection, err := net.Dial(serverType, host+":"+port)
+	connection, err := net.Dial("tcp", host+":"+port)
 	if err != nil {
 		api.Err("Cannot connect to server. Are you sure the server is running?\n")
 		os.Exit(1)
@@ -114,7 +128,8 @@ func main() {
 
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go write(connection, &wg)
-	go read(connection, &wg)
+	go Write(connection, &wg)
+	go Read(connection, &wg)
 	wg.Wait()
+
 }

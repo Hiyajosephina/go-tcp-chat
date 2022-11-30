@@ -18,6 +18,7 @@ func Write(connection net.Conn, wg *sync.WaitGroup) {
 	api.Broadcast("Enter commands:\t\t\t(Enter \"\\help\" for list of commands)\n")
 	defer wg.Done()
 	for {
+		api.Print(">")
 		reader := bufio.NewReader(os.Stdin)
 		bLine, _, _ := reader.ReadLine()
 		msg := string(bLine)
@@ -55,6 +56,7 @@ func Read(connection net.Conn, wg *sync.WaitGroup) {
 			commands += "\"\\dm <username> <message>\" to send <message> to <username>\n"
 			commands += "\"\\online\" to view all currently online users\n"
 			commands += "\"\\quit\" to log off the server\n"
+			commands += "\n\n"
 			api.Broadcast(commands)
 			break
 		case "\\b":

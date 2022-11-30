@@ -54,7 +54,6 @@ ServerIn:
 		// "\all <message>" is the broadcast command
 		case "\\all":
 			Broadcast(client, server, "\\b "+client.user+": "+msg+"\n")
-			api.Log(client.user + " broadcasted a message\n")
 			break
 
 		// "\dm <username> <message>" is the direct message command
@@ -104,8 +103,8 @@ func ShowOnline(client *Client, server *Server) {
 func DirectMessage(client *Client, server *Server, user string, msg string) {
 	for _, sClient := range server.clients {
 		if sClient.user == user {
-			Write(sClient, "\\d "+user+": "+msg+"\n")
-			api.Log(client.user + " direct messaged " + user)
+			Write(sClient, "\\d "+client.user+": "+msg+"\n")
+			api.Log(client.user + " direct messaged " + user + "\n")
 			return
 		}
 	}
@@ -120,6 +119,8 @@ func Broadcast(client *Client, server *Server, msg string) {
 			Write(sClient, msg)
 		}
 	}
+	api.Log(client.user + " broadcasted a message\n")
+	
 }
 
 // Write writes to the client's net.Conn
